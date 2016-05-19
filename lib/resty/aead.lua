@@ -68,32 +68,11 @@ local EVP_AEAD_MAX_NONCE_LENGTH = 16
 local EVP_AEAD_MAX_OVERHEAD = 64
 local EVP_AEAD_DEFAULT_TAG_LENGTH = 0
 
-local AEAD_CTXS = {
-	["aes"] = C.EVP_aead_aes_128_gcm,
-	["aes-gcm"] = C.EVP_aead_aes_128_gcm,
-	["aes-128-gcm"] = C.EVP_aead_aes_128_gcm,
-	["aes-256"] = C.EVP_aead_aes_256_gcm,
-	["aes-256-gcm"] = C.EVP_aead_aes_256_gcm,
-
-	["chacha20-poly1305"] = C.EVP_aead_chacha20_poly1305,
-	["chacha20-poly1305-old"] = C.EVP_aead_chacha20_poly1305_old,
-
-	["aes-key-wrap"] = C.EVP_aead_aes_128_key_wrap,
-	["aes-128-key-wrap"] = C.EVP_aead_aes_128_key_wrap,
-	["aes-256-key-wrap"] = C.EVP_aead_aes_256_key_wrap,
-
-	["aes-ctr-hmac"] = C.EVP_aead_aes_128_ctr_hmac_sha256,
-	["aes-128-ctr-hmac"] = C.EVP_aead_aes_128_ctr_hmac_sha256,
-	["aes-128-ctr-hmac-sha256"] = C.EVP_aead_aes_128_ctr_hmac_sha256,
-	["aes-256-ctr-hmac"] = C.EVP_aead_aes_256_ctr_hmac_sha256,
-	["aes-256-ctr-hmac-sha256"] = C.EVP_aead_aes_256_ctr_hmac_sha256,
-}
-
 local emt = {}
 
 function emt.__tostring(self)
 	local buf = get_string_buf(ERR_ERROR_STRING_BUF_LEN)
-	C.ERR_error_string_n(self.code, buf, ERR_ERROR_STRING_BUF_LEN)
+	C.ERR_error_string_n(self._code, buf, ERR_ERROR_STRING_BUF_LEN)
 	return ffi_str(buf)
 end
 
@@ -107,7 +86,7 @@ local function error_str()
 	end
 
 	return setmetatable({
-		code = code,
+		_code = code,
 
 		file = ffi_str(ccharpp[0]),
 		line = intp[0],
@@ -118,26 +97,28 @@ local function error_str()
 	}, emt)
 end
 
-local function aead_length(fn, name)
-	if type(name) == "string" then
-		local ctx_fn = AEAD_CTXS[name]
-		if not ctx_fn then
-			return nil, "invalid cipher name"
-		end
-
-		return tonumber(fn(ctx_fn()))
-	end
-
-	local self = name
-	if not self.ctx then
-		return error("not initialized")
-	end
-
-	return tonumber(fn(self.aead))
-end
-
 local _M = {}
 local mt = { __index = _M }
+
+_M.AES_128_GCM = {}
+_M.AES_256_GCM = {}
+_M.CHACHA20_POLY1305 = {}
+_M.CHACHA20_POLY1305_OLD = {}
+_M.AES_128_CTR_HMAC256 = {}
+_M.AES_256_CTR_HMAC256 = {}
+_M.AES_128_KEY_WRAP = {}
+_M.AES_256_KEY_WRAP = {}
+
+local AEAD_CTXS = {
+	[_M.AES_128_GCM] = C.EVP_aead_aes_128_gcm,
+	[_M.AES_256_GCM] = C.EVP_aead_aes_256_gcm,
+	[_M.CHACHA20_POLY1305] = C.EVP_aead_chacha20_poly1305,
+	[_M.CHACHA20_POLY1305_OLD] = C.EVP_aead_chacha20_poly1305_old,
+	[_M.AES_128_CTR_HMAC256] = C.EVP_aead_aes_128_ctr_hmac_sha256,
+	[_M.AES_256_CTR_HMAC256] = C.EVP_aead_aes_256_ctr_hmac_sha256,
+	[_M.AES_128_KEY_WRAP] = C.EVP_aead_aes_128_key_wrap,
+	[_M.AES_256_KEY_WRAP] = C.EVP_aead_aes_256_key_wrap,
+}
 
 function _M.has_aes_hardware()
 	return C.EVP_has_aes_hardware() == 1
@@ -151,6 +132,19 @@ function _M.rand(len)
 	end
 
 	return ffi_str(buf, len)
+end
+
+local function aead_length(fn, self)
+	if self.ctx then
+		return tonumber(fn(self.aead))
+	end
+
+	local ctx_fn = AEAD_CTXS[self]
+	if not ctx_fn then
+		return nil, "invalid cipher"
+	end
+
+	return tonumber(fn(ctx_fn()))
 end
 
 function _M.key_len(...)
@@ -171,20 +165,16 @@ end
 
 local evp_aead_ctx_type = ffi.typeof("EVP_AEAD_CTX[1]")
 
-function _M.new(name, key, tag_len)
-	local ctx_fn = AEAD_CTXS[name]
+function _M.new(id, key, tag_len)
+	local ctx_fn = AEAD_CTXS[id]
 	if not ctx_fn then
-		return nil, "invalid cipher name"
-	end
-
-	if not tag_len then
-		tag_len = EVP_AEAD_DEFAULT_TAG_LENGTH
+		return nil, "invalid cipher"
 	end
 
 	local ctx = ffi_new(evp_aead_ctx_type)
 	local aead = ctx_fn()
 
-	if C.EVP_AEAD_CTX_init(ctx, aead, key, #key, tag_len, nil) ~= 1 then
+	if C.EVP_AEAD_CTX_init(ctx, aead, key, #key, tag_len or EVP_AEAD_DEFAULT_TAG_LENGTH, nil) ~= 1 then
 		return nil, error_str()
 	end
 
