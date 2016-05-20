@@ -89,7 +89,7 @@ local function get_error()
 		_code = code,
 
 		file = ffi_str(ccharpp[0]),
-		line = intp[0],
+		line = tonumber(intp[0]),
 
 		library = ffi_str(C.ERR_lib_error_string(code)),
 		func = ffi_str(C.ERR_func_error_string(code)),
