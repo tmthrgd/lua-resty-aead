@@ -79,7 +79,7 @@ end
 local ccharpp = ffi.new("const char*[1]")
 local intp = ffi.new("int[1]")
 
-local function error_str()
+local function get_error()
 	local code = C.ERR_get_error_line(ccharpp, intp)
 	if code == 0 then
 		return nil
@@ -128,7 +128,7 @@ function _M.rand(len)
 	local buf = get_string_buf(len)
 
 	if C.RAND_bytes(buf, len) ~= 1 then
-		return nil, error_str()
+		return nil, get_error()
 	end
 
 	return ffi_str(buf, len)
@@ -175,7 +175,7 @@ function _M.new(id, key, tag_len)
 	local aead = ctx_fn()
 
 	if C.EVP_AEAD_CTX_init(ctx, aead, key, #key, tag_len or EVP_AEAD_DEFAULT_TAG_LENGTH, nil) ~= 1 then
-		return nil, error_str()
+		return nil, get_error()
 	end
 
 	ffi_gc(ctx, C.EVP_AEAD_CTX_cleanup)
@@ -194,7 +194,7 @@ function _M.seal(self, nonce, pt, ad)
 	local ct_len = get_size_ptr()
 
 	if C.EVP_AEAD_CTX_seal(self.ctx, ct, ct_len, max_ct_len, nonce, #nonce, pt, pt_len, ad, #ad) ~= 1 then
-		return nil, error_str()
+		return nil, get_error()
 	end
 
 	return ffi_str(ct, ct_len[0])
@@ -210,7 +210,7 @@ function _M.open(self, nonce, ct, ad)
 	local pt_len = get_size_ptr()
 
 	if C.EVP_AEAD_CTX_open(self.ctx, pt, pt_len, ct_len, nonce, #nonce, ct, ct_len, ad, #ad) ~= 1 then
-		return nil, error_str()
+		return nil, get_error()
 	end
 
 	return ffi_str(pt, pt_len[0])
