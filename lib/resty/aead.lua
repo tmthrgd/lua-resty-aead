@@ -33,6 +33,8 @@ const EVP_AEAD *EVP_aead_chacha20_poly1305(void);
 const EVP_AEAD *EVP_aead_chacha20_poly1305_old(void);
 const EVP_AEAD *EVP_aead_aes_128_ctr_hmac_sha256(void);
 const EVP_AEAD *EVP_aead_aes_256_ctr_hmac_sha256(void);
+const EVP_AEAD *EVP_aead_aes_128_gcm_siv(void);
+const EVP_AEAD *EVP_aead_aes_256_gcm_siv(void);
 
 int EVP_has_aes_hardware(void);
 
@@ -104,6 +106,8 @@ _M.CHACHA20_POLY1305 = {}
 _M.CHACHA20_POLY1305_OLD = {}
 _M.AES_128_CTR_HMAC256 = {}
 _M.AES_256_CTR_HMAC256 = {}
+_M.AES_128_GCM_SIV = {}
+_M.AES_256_GCM_SIV = {}
 
 local AEAD_CTXS = {
 	[_M.AES_128_GCM] = C.EVP_aead_aes_128_gcm,
@@ -112,6 +116,8 @@ local AEAD_CTXS = {
 	[_M.CHACHA20_POLY1305_OLD] = C.EVP_aead_chacha20_poly1305_old,
 	[_M.AES_128_CTR_HMAC256] = C.EVP_aead_aes_128_ctr_hmac_sha256,
 	[_M.AES_256_CTR_HMAC256] = C.EVP_aead_aes_256_ctr_hmac_sha256,
+	[_M.AES_128_GCM_SIV] = C.EVP_aead_aes_128_gcm_siv,
+	[_M.AES_256_GCM_SIV] = C.EVP_aead_aes_256_gcm_siv,
 }
 
 function _M.has_aes_hardware()
