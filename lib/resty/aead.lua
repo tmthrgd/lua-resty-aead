@@ -30,7 +30,6 @@ int RAND_bytes(uint8_t *buf, size_t len);
 const EVP_AEAD *EVP_aead_aes_128_gcm(void);
 const EVP_AEAD *EVP_aead_aes_256_gcm(void);
 const EVP_AEAD *EVP_aead_chacha20_poly1305(void);
-const EVP_AEAD *EVP_aead_chacha20_poly1305_old(void);
 const EVP_AEAD *EVP_aead_aes_128_ctr_hmac_sha256(void);
 const EVP_AEAD *EVP_aead_aes_256_ctr_hmac_sha256(void);
 const EVP_AEAD *EVP_aead_aes_128_gcm_siv(void);
@@ -103,7 +102,6 @@ local mt = { __index = _M }
 _M.AES_128_GCM = {}
 _M.AES_256_GCM = {}
 _M.CHACHA20_POLY1305 = {}
-_M.CHACHA20_POLY1305_OLD = {}
 _M.AES_128_CTR_HMAC256 = {}
 _M.AES_256_CTR_HMAC256 = {}
 _M.AES_128_GCM_SIV = {}
@@ -113,7 +111,6 @@ local AEAD_CTXS = {
 	[_M.AES_128_GCM] = C.EVP_aead_aes_128_gcm,
 	[_M.AES_256_GCM] = C.EVP_aead_aes_256_gcm,
 	[_M.CHACHA20_POLY1305] = C.EVP_aead_chacha20_poly1305,
-	[_M.CHACHA20_POLY1305_OLD] = C.EVP_aead_chacha20_poly1305_old,
 	[_M.AES_128_CTR_HMAC256] = C.EVP_aead_aes_128_ctr_hmac_sha256,
 	[_M.AES_256_CTR_HMAC256] = C.EVP_aead_aes_256_ctr_hmac_sha256,
 	[_M.AES_128_GCM_SIV] = C.EVP_aead_aes_128_gcm_siv,
