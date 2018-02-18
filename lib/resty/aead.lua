@@ -13,10 +13,7 @@ local get_string_buf = base.get_string_buf
 
 ffi.cdef[[
 typedef struct evp_aead_st EVP_AEAD;
-typedef struct evp_aead_ctx_st {
-	const EVP_AEAD *aead;
-	void *aead_state;
-} EVP_AEAD_CTX;
+typedef struct evp_aead_ctx_st EVP_AEAD_CTX;
 typedef struct engine_st ENGINE;
 
 uint32_t ERR_get_error_line(const char **file, int *line);
@@ -42,11 +39,10 @@ size_t EVP_AEAD_nonce_length(const EVP_AEAD *aead);
 size_t EVP_AEAD_max_overhead(const EVP_AEAD *aead);
 size_t EVP_AEAD_max_tag_len(const EVP_AEAD *aead);
 
-void EVP_AEAD_CTX_zero(EVP_AEAD_CTX *ctx);
-int EVP_AEAD_CTX_init(EVP_AEAD_CTX *ctx, const EVP_AEAD *aead,
-                      const uint8_t *key, size_t key_len,
-                      size_t tag_len, ENGINE *impl);
-void EVP_AEAD_CTX_cleanup(EVP_AEAD_CTX *ctx);
+EVP_AEAD_CTX *EVP_AEAD_CTX_new(const EVP_AEAD *aead,
+			       const uint8_t *key,
+			       size_t key_len, size_t tag_len);
+void EVP_AEAD_CTX_free(EVP_AEAD_CTX *ctx);
 
 int EVP_AEAD_CTX_seal(const EVP_AEAD_CTX *ctx, uint8_t *out,
                       size_t *out_len, size_t max_out_len,
@@ -160,22 +156,20 @@ function _M.max_tag_len(...)
 	return aead_length(C.EVP_AEAD_max_tag_len, ...)
 end
 
-local evp_aead_ctx_type = ffi.typeof("EVP_AEAD_CTX[1]")
-
 function _M.new(id, key, tag_len)
 	local ctx_fn = AEAD_CTXS[id]
 	if not ctx_fn then
 		return nil, "invalid cipher"
 	end
 
-	local ctx = ffi_new(evp_aead_ctx_type)
 	local aead = ctx_fn()
 
-	if C.EVP_AEAD_CTX_init(ctx, aead, key, #key, tag_len or EVP_AEAD_DEFAULT_TAG_LENGTH, nil) ~= 1 then
+	local ctx = C.EVP_AEAD_CTX_new(aead, key, #key, tag_len or EVP_AEAD_DEFAULT_TAG_LENGTH)
+	if not ctx then
 		return nil, get_error()
 	end
 
-	ffi_gc(ctx, C.EVP_AEAD_CTX_cleanup)
+	ffi_gc(ctx, C.EVP_AEAD_CTX_free)
 
 	return setmetatable({ ctx = ctx, aead = aead }, mt)
 end
