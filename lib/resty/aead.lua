@@ -14,7 +14,6 @@ local get_string_buf = base.get_string_buf
 ffi.cdef[[
 typedef struct evp_aead_st EVP_AEAD;
 typedef struct evp_aead_ctx_st EVP_AEAD_CTX;
-typedef struct engine_st ENGINE;
 
 uint32_t ERR_get_error_line(const char **file, int *line);
 const char *ERR_lib_error_string(uint32_t packed_error);
